@@ -69,7 +69,7 @@ def target(player, image, image2=None):
 
 def death_search(player):
     while True:
-        imagesearch_loop('ded.png', 0.5)
+        imagesearch_loop('ded.png', 0.5, 0.5)
         p.dead = True
         player.deaths += 1
         print("Deaths: ", player.deaths)
@@ -78,13 +78,15 @@ def death_search(player):
 
 
 def main_thread(player):
-    for i in range(len(order)-1):
+    game_on = True
+    while game_on:
+        if len(order) - 1 <= player.current_boss:
+            game_on = False
         pathname = os.path.dirname(sys.argv[0]) + "/boss_imgs/" + order[player.current_boss]
         print(pathname)
         files = []
         for file in os.listdir(os.path.abspath(pathname)):
-            filename = os.fsdecode(file)
-            files.append(filename)
+            files.append(os.fsdecode(file))
         print(len(files))
         if len(files) == 2:
             if 'name' in files[0]:
@@ -96,15 +98,22 @@ def main_thread(player):
             elif 'reward' in files[0]:
                 reward = pathname + '/' + files[0]
             target(player, name, reward)
+    print("you won! ☺")
 
 '''Priscilla not fixed.... :/ both name and reward.'''
 
 order = ['asylum', 'taurus', 'gargoyle', 'butterfly',
-         'capra', 'gaping', 'spider', 'iron_golem', 'o_s',
-         'stray', 'priscilla', 'ceaseless', 'firesage']
+         'capra', 'gaping', 'spider',
+         'iron_golem', 'o_s', 'stray',
+         'priscilla',   # fix Priscilla
+         'ceaseless', 'sif',    # fix Sif
+         'kings', 'firesage',
+         'centipede', 'chaosbed',
+         'seath', 'pinwheel',
+         'nito', 'gwyndolin']
 
 if __name__ == "__main__":
-    p = Player(False, 0, 9)
+    p = Player(False, 0, 17)
     threading.Thread(target=death_search, args=(p,)).start()
     threading.Thread(target=main_thread, args=(p,)).start()
     # for i in range(len(order)):
