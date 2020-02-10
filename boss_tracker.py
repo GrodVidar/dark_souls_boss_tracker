@@ -104,16 +104,16 @@ def main_thread(player):
 
 order = ['asylum', 'taurus', 'gargoyle', 'butterfly',
          'capra', 'gaping', 'spider',
-         'iron_golem', 'o_s', 'stray',
-         'priscilla',   # fix Priscilla
-         'ceaseless', 'sif',    # fix Sif
+         'iron_golem', 'o_s', 'stray',  # check iron_golem reward
+         'priscilla',
+         'ceaseless', 'sif',
          'kings', 'firesage',
          'centipede', 'chaosbed',
          'seath', 'pinwheel',
          'nito', 'gwyndolin']
 
 if __name__ == "__main__":
-    p = Player(False, 0, 17)
+    p = Player(False, 0, 12)
     threading.Thread(target=death_search, args=(p,)).start()
     threading.Thread(target=main_thread, args=(p,)).start()
     # for i in range(len(order)):
