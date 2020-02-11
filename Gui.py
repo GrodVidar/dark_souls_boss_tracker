@@ -1,6 +1,7 @@
 from PySide2.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QGridLayout, QMainWindow, QMessageBox, QListWidget, QApplication
 import re
 import boss_tracker
+import sys
 
 
 class ErrorWindow(QMessageBox):
@@ -13,10 +14,13 @@ class ErrorWindow(QMessageBox):
 
 
 class Widgets(QWidget):
-    def __init__(self):
+    def __init__(self, gui, app):
         super(Widgets, self).__init__()
+        self.gui = gui
+        self.app = app
         self.setWindowTitle("Dark Souls Boss Tracker")
         self.setGeometry(800, 400, 250, 200)
+        self.new_run_label = QLabel("Run name:")
         self.new_run_field = QLineEdit(self)
         self.new_run_button = QPushButton("Start New Run", self)
         self.new_run_button.clicked.connect(self.new_run)
@@ -30,12 +34,13 @@ class Widgets(QWidget):
         self.delete_button.clicked.connect(self.delete_run)
 
         self.layout = QGridLayout()
-        self.layout.addWidget(self.new_run_field, 0, 0)
-        self.layout.addWidget(self.new_run_button, 0, 1)
-        self.layout.addWidget(self.previous_label, 1, 0)
-        self.layout.addWidget(self.previous_runs, 2, 0)
-        self.layout.addWidget(self.resume_button, 3, 0)
-        self.layout.addWidget(self.delete_button, 3, 1)
+        self.layout.addWidget(self.new_run_label, 0, 0)
+        self.layout.addWidget(self.new_run_field, 1, 0)
+        self.layout.addWidget(self.new_run_button, 1, 1)
+        self.layout.addWidget(self.previous_label, 2, 0)
+        self.layout.addWidget(self.previous_runs, 3, 0)
+        self.layout.addWidget(self.resume_button, 4, 0)
+        self.layout.addWidget(self.delete_button, 4, 1)
         self.get_tables()
 
         self.setLayout(self.layout)
@@ -43,8 +48,9 @@ class Widgets(QWidget):
     def get_tables(self):
         self.previous_runs.clear()
         my_list = boss_tracker.get_tables()
-        for i in my_list:
-            self.previous_runs.addItem(i[0])
+        if my_list is not None:
+            for i in my_list:
+                self.previous_runs.addItem(i[0])
         # print(my_list)
 
     def select_run(self, item):
@@ -57,13 +63,16 @@ class Widgets(QWidget):
             if self.new_run_field.text() == self.previous_runs.item(i).text():
                 error = True
         if not error and len(self.new_run_field.text()) > 3:
-            boss_tracker.start_new_run(self.new_run_field.text())
+            boss_tracker.start_new_run(self.new_run_field.text(), self.app)
             self.previous_runs.addItem(self.new_run_field.text())
-        ErrorWindow("Username too short has special characters or already in use.")
+            self.gui.close()
+        else:
+            ErrorWindow("Username too short has special characters or already in use.")
 
     def resume(self):
         if self.selected is not None:
             boss_tracker.resume_run(self.selected)
+            self.gui.close()
 
     def delete_run(self):
         print(self.selected)
@@ -73,10 +82,10 @@ class Widgets(QWidget):
 
 
 class GUI(QMainWindow):
-    def __init__(self):
+    def __init__(self, app):
         super(GUI, self).__init__()
 
-        self.widget = Widgets()
+        self.widget = Widgets(self, app)
         self.setCentralWidget(self.widget)
 
 

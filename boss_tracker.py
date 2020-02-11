@@ -12,12 +12,21 @@ import os
 import threading
 from player import Player
 import sqlite3
-from PySide2.QtWidgets import QApplication
 from Gui import *
+from order_manager import *
 
+order = ['asylum', 'taurus', 'gargoyle',
+         'butterfly', 'capra', 'gaping',
+         'spider', 'iron_golem', 'o_s',
+         'stray', 'priscilla', 'ceaseless',
+         'sif', 'kings', 'firesage', 'centipede',
+         'chaosbed', 'seath', 'pinwheel', 'nito',
+         'gwyndolin', 'sanctuary', 'artorias', 'manus',
+         'kalameet', 'gwyn']
 
 connection = sqlite3.connect("dark_souls.db", check_same_thread=False)
 curs = connection.cursor()
+
 
 is_retina = False
 if platform.system() == "Darwin":
@@ -72,7 +81,7 @@ def target(player, run_name, image, image2=None):
             return
         print("position : ", pos[0], pos[1])
         player.current_boss += 1
-        curs.execute(f"UPDATE {run_name} SET current_boss=?", str(player.current_boss))
+        curs.execute(f"UPDATE runs SET current_boss=? WHERE run_name=?", (str(player.current_boss), run_name))
         connection.commit()
 
 
@@ -81,7 +90,9 @@ def death_search(player, run_name):
         imagesearch_loop('ded.png', player, 0.5, 0.5)
         player.dead = True
         player.deaths += 1
-        curs.execute(f"UPDATE {run_name} SET deaths = ?", str(player.deaths))
+        player.total_deaths += 1
+        curs.execute(f"UPDATE runs SET deaths=?, total_deaths=? WHERE run_name=?",
+                     (str(player.deaths), str(player.total_deaths), run_name))
         connection.commit()
         print("Deaths: ", player.deaths)
         time.sleep(3)
@@ -110,54 +121,60 @@ def main_thread(player, run_name):
                 reward = pathname + '/' + files[0]
             target(player, run_name, name, reward)
     print("you won! ☺")
+    player.new_game += 1
+    player.deaths = 0
+    curs.execute(f"UPDATE runs SET deaths=?, new_game=? WHERE run_name=?", (str(player.deaths), str(player.new_game), run_name))
 
 '''Priscilla not fixed.... :/ both name and reward.'''
 
-order = ['asylum', 'taurus', 'gargoyle',
-         'butterfly','capra', 'gaping',
-         'spider', 'iron_golem', 'o_s',
-         'stray', 'priscilla', 'ceaseless',
-         'sif', 'kings', 'firesage', 'centipede',
-         'chaosbed', 'seath', 'pinwheel', 'nito',
-         'gwyndolin', 'sanctuary', 'artorias', 'manus',
-         'kalameet', 'gwyn']
-
 
 def get_tables():
-    curs.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    names = curs.fetchall()
+    curs.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='runs'")
+    hej = curs.fetchone()
+    names = None
+    print(hej)
+    if hej is not None:
+        curs.execute("SELECT run_name FROM runs")
+        names = curs.fetchall()
     return names
 
 
 def resume_run(run_name):
     print(run_name)
-    curs.execute(f"SELECT * FROM {run_name}")
-    deaths, current_boss = curs.fetchall()[0]
-    print(deaths, current_boss)
-    p = Player(False, deaths, current_boss)
+    curs.execute(f"SELECT * FROM runs WHERE run_name=?", (run_name,))
+    name, deaths, current_boss, total_deaths, new_game = curs.fetchall()[0]
+    print(deaths, current_boss, total_deaths, new_game)
+    p = Player(deaths, current_boss, total_deaths, new_game)
     threading.Thread(target=death_search, args=(p, run_name)).start()
     threading.Thread(target=main_thread, args=(p, run_name)).start()
 
 
-def start_new_run(run_name):
+def start_new_run(run_name, app):
     print(run_name)
-    curs.execute(f"CREATE TABLE IF NOT EXISTS {run_name}(deaths INTEGER NOT NULL, current_boss INTEGER NOT NULL)")
-    curs.execute(f"INSERT INTO {run_name}(deaths, current_boss) VALUES(0,0)")
+    curs.execute("CREATE TABLE IF NOT EXISTS runs(run_name TEXT, deaths INTEGER NOT NULL, "
+                 "current_boss INTEGER NOT NULL, total_deaths INTEGER NOT NULL, new_game INTEGER NOT NULL)")
+    curs.execute("INSERT INTO runs(run_name, deaths, current_boss, total_deaths, new_game) "
+                 "VALUES(?,0,0,0,0)", (run_name,))
     connection.commit()
-    p = Player(False, 0, 0)
+    # app = QApplication(sys.argv)
+    order_list = OrderGui()
+    order_list.show()
+    app.exec_()
+    p = Player(0, 0, 0, 0)
     threading.Thread(target=death_search, args=(p, run_name)).start()
     threading.Thread(target=main_thread, args=(p, run_name)).start()
 
 
 def delete_table(run_name):
     print("deleting", run_name)
-    curs.execute(f"DROP TABLE {run_name}")
+    curs.execute(f"DELETE FROM runs WHERE run_name=?", (run_name,))
+    connection.commit()
 
 
 if __name__ == "__main__":
     # start GUI
     app = QApplication(sys.argv)
-    gui = Widgets()
+    gui = GUI(app=app)
     gui.show()
     app.exec_()
 
