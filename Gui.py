@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QGridLayout, QMainWindow, QMessageBox, QListWidget, QApplication
+from PySide2.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QGridLayout, QMainWindow, QMessageBox, QListWidget, QApplication, QAbstractItemView
 import re
 import boss_tracker
 import sys
@@ -11,6 +11,25 @@ class ErrorWindow(QMessageBox):
         self.error_win.setWindowTitle("Message")
         self.error_win.setText(message)
         self.error_win.exec_()
+
+
+class Order(QWidget):
+    def __init__(self):
+        super(Order, self).__init__()
+        self.order_list = QListWidget()
+        self.required_bosses = ['Asylum Demon', 'Bell Gargoyle',
+                                'Quelaag', 'Iron Golem', 'Ornstein & Smough',
+                                'Ceaseless Discharge', 'Sif', '4 Kings',
+                                'Bed Of Chaos', 'Seath', 'Pinwheel',
+                                'Nito', 'Gwyn']
+
+        self.order_list.setDragDropMode(QAbstractItemView.InternalMove)
+        for i in self.required_bosses:
+            self.order_list.addItem(i)
+
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.order_list, 0, 0)
+        self.setLayout(self.layout)
 
 
 class Widgets(QWidget):
@@ -63,6 +82,7 @@ class Widgets(QWidget):
             if self.new_run_field.text() == self.previous_runs.item(i).text():
                 error = True
         if not error and len(self.new_run_field.text()) > 3:
+            Order().show()
             boss_tracker.start_new_run(self.new_run_field.text(), self.app)
             self.previous_runs.addItem(self.new_run_field.text())
             self.gui.close()
@@ -91,6 +111,6 @@ class GUI(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    gui = Widgets()
-    gui.show()
+    Widgets().show()
+    Order().show()
     app.exec_()

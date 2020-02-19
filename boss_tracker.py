@@ -15,14 +15,14 @@ import sqlite3
 from Gui import *
 from order_manager import *
 
-order = ['asylum', 'taurus', 'gargoyle',
-         'butterfly', 'capra', 'gaping',
-         'spider', 'iron_golem', 'o_s',
-         'stray', 'priscilla', 'ceaseless',
-         'sif', 'kings', 'firesage', 'centipede',
-         'chaosbed', 'seath', 'pinwheel', 'nito',
-         'gwyndolin', 'sanctuary', 'artorias', 'manus',
-         'kalameet', 'gwyn']
+order = ['Asylum Demon', 'Taurus Demon', 'Bell Gargoyle',
+         'Moonlight Butterfly', 'Capra Demon', 'Gaping Dragon',
+         'Quelaag', 'Iron Golem', 'Ornstein & Smough',
+         'Stray Demon', 'Priscilla', 'Ceaseless Discharge',
+         'Sif', '4 Kings', 'Demon Firesage', 'Centipede Demon',
+         'Bed Of Chaos', 'Seath', 'Pinwheel', 'Nito',
+         'Gwyndolin', 'Sanctuary Guardian', 'Artorias', 'Manus',
+         'Kalameet', 'Gwyn']
 
 connection = sqlite3.connect("dark_souls.db", check_same_thread=False)
 curs = connection.cursor()
@@ -34,15 +34,13 @@ if platform.system() == "Darwin":
 
 
 def imagesearch(image, precision=0.8):
-    im = pyautogui.screenshot()
+    im = pyautogui.screenshot()     # region=(550, 300, 600, 600))
     if is_retina:
         im.thumbnail((round(im.size[0] * 0.5), round(im.size[1] * 0.5)))
-    # im.save('testarea.png') useful for debugging purposes, this will save the captured region as "testarea.png"
     img_rgb = np.array(im)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
     template = cv2.imread(image, 0)
     template.shape[::-1]
-
     res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
     if max_val < precision:
@@ -70,7 +68,7 @@ def target(player, run_name, image, image2=None):
         time.sleep(5)
         if not player.dead:
             target(player, image, image2)
-        return
+            return
     print("position : ", pos[0], pos[1])
     if image2 is not None:
         pos = imagesearch_loop(image2, player, 0.5)
@@ -78,7 +76,7 @@ def target(player, run_name, image, image2=None):
             time.sleep(5)
             if not player.dead:
                 target(player, run_name, image, image2)
-            return
+                return
         print("position : ", pos[0], pos[1])
         player.current_boss += 1
         curs.execute(f"UPDATE runs SET current_boss=? WHERE run_name=?", (str(player.current_boss), run_name))
@@ -123,7 +121,9 @@ def main_thread(player, run_name):
     print("you won! ☺")
     player.new_game += 1
     player.deaths = 0
-    curs.execute(f"UPDATE runs SET deaths=?, new_game=? WHERE run_name=?", (str(player.deaths), str(player.new_game), run_name))
+    player.current_boss = 0
+    curs.execute(f"UPDATE runs SET deaths=0, new_game=?, current_boss=0 WHERE run_name=?",
+                 (str(player.new_game), run_name))
 
 '''Priscilla not fixed.... :/ both name and reward.'''
 
@@ -156,13 +156,9 @@ def start_new_run(run_name, app):
     curs.execute("INSERT INTO runs(run_name, deaths, current_boss, total_deaths, new_game) "
                  "VALUES(?,0,0,0,0)", (run_name,))
     connection.commit()
-    # app = QApplication(sys.argv)
-    order_list = OrderGui()
-    order_list.show()
-    app.exec_()
-    p = Player(0, 0, 0, 0)
-    threading.Thread(target=death_search, args=(p, run_name)).start()
-    threading.Thread(target=main_thread, args=(p, run_name)).start()
+    # p = Player(0, 0, 0, 0)
+    # threading.Thread(target=death_search, args=(p, run_name)).start()
+    # threading.Thread(target=main_thread, args=(p, run_name)).start()
 
 
 def delete_table(run_name):
@@ -175,7 +171,9 @@ if __name__ == "__main__":
     # start GUI
     app = QApplication(sys.argv)
     gui = GUI(app=app)
+    order_gui = OrderGui()
     gui.show()
+    order_gui.show()
     app.exec_()
 
 
